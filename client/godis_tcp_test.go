@@ -5,8 +5,9 @@ import (
 	"testing"
 )
 
-const KEY = "TEST_KEY"
-const VALUE = "TEST_VALUE"
+const KEY = "KEY"
+const KEY2 = "KEY2"
+const VALUE = "VALUE"
 
 var godis Godis
 
@@ -26,6 +27,25 @@ func TestThatSetSetsKeyWithValue(t *testing.T) {
 
 func TestThatExistsReturnsZeroIfNotInsertedKey(t *testing.T) {
 	if actual, _ := godis.Exists(KEY); actual != 0 {
+		t.Errorf("Expected Exists 0 but got %d", actual)
+	}
+}
+
+func TestThatExistsReturns10When10KeysExists(t *testing.T) {
+	godis.Set(KEY, VALUE)
+	godis.Set(KEY2, VALUE)
+	if actual, _ := godis.Exists(KEY, KEY2); actual != 2 {
+		t.Errorf("Expected Exists 2 but got %d", actual)
+	}
+	godis.Del(KEY)
+	godis.Del(KEY2)
+}
+
+func TestThatDeletes2Keys(t *testing.T) {
+	godis.Set(KEY, VALUE)
+	godis.Set(KEY2, VALUE)
+	godis.Del(KEY, KEY2)
+	if actual, _ := godis.Exists(KEY, KEY2); actual != 0 {
 		t.Errorf("Expected Exists 0 but got %d", actual)
 	}
 }

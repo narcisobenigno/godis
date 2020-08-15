@@ -1,6 +1,7 @@
 package client
 
 type Key = string
+type Argument = string
 
 type Godis interface {
 	Open() error
@@ -9,5 +10,6 @@ type Godis interface {
 	Exists(key Key, keys ...Key) (int64, error)
 	Del(key Key, keys ...Key) (int64, error)
 	FlushDb() error
+	Execute(command RedisCommand) (string, error)
 	Close()
 }

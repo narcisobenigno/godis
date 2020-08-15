@@ -21,6 +21,24 @@ func (bulkString *RespBulkString) Encode() RespEncoded {
 	}
 }
 
+type RespArraySmart []RespType
+
+func (a RespArraySmart) Encode() RespEncoded {
+	values := make([]RespEncoded, len(a))
+
+	for i, v := range a {
+		values[i] = v.Encode()
+	}
+
+	identifier := fmt.Sprintf("*%d", len(values))
+	return &RespMultiEncoded{
+		append(
+			[]RespEncoded{&RespSingleEncoded{identifier}},
+			values...,
+		),
+	}
+}
+
 type RespArray struct {
 	values []RespType
 }

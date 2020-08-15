@@ -27,118 +27,125 @@ func (g *GodisTcp) Open() error {
 }
 
 func (g *GodisTcp) Set(key Key, value string) error {
-	resp := &RespArray{
-		[]RespType{
-			&RespBulkString{"SET"},
-			&RespBulkString{key},
-			&RespBulkString{value},
-		},
+	command := &WithArgumentRedisCommand{
+		&SimpleRedisCommand{"SET"},
+		[]Argument{key, value},
 	}
-	command := resp.Encode().ToString()
+	_, err := g.Execute(command)
 
-	if _, err := g.conn.Write([]byte(command)); err != nil {
+	if err != nil {
 		return err
 	}
 
-	size := g.reader.Size()
-	content := make([]byte, size)
-	g.reader.Read(content)
 	return nil
 }
 
 func (g *GodisTcp) Get(key Key) (string, error) {
-	resp := &RespArray{
-		[]RespType{
-			&RespBulkString{"GET"},
-			&RespBulkString{key},
-		},
+	command := &WithArgumentRedisCommand{
+		&SimpleRedisCommand{"GET"},
+		[]Argument{key},
 	}
-	command := resp.Encode().ToString()
+	fullReturn, err := g.Execute(command)
 
-	if _, err := g.conn.Write([]byte(command)); err != nil {
+	if err != nil {
 		return "", err
-	} else {
-		size := g.reader.Size()
-		byteContent := make([]byte, size)
-		g.reader.Read(byteContent)
-		fullReturn := string(byteContent)
-
-		contentStartingAt := int64(1)
-		for i := 1; fullReturn[i] != '\r'; i++ {
-			contentStartingAt++
-		}
-		keySize, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
-		contentStartingAt++
-		contentStartingAt++
-		contentFinishAt := contentStartingAt + keySize
-
-		return fullReturn[contentStartingAt:contentFinishAt], nil
 	}
+
+	contentStartingAt := int64(1)
+	for i := 1; fullReturn[i] != '\r'; i++ {
+		contentStartingAt++
+	}
+	keySize, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
+	contentStartingAt++
+	contentStartingAt++
+	contentFinishAt := contentStartingAt + keySize
+
+	return fullReturn[contentStartingAt:contentFinishAt], nil
 }
 
 func (g *GodisTcp) Exists(key Key, keys ...Key) (int64, error) {
-	resp := &RespArray{
-		[]RespType{
-			&RespBulkString{"EXISTS"},
-			&RespBulkString{key},
-		},
+	respCommand := &WithArgumentRedisCommand{
+		&SimpleRedisCommand{"EXISTS"},
+		append([]Argument{key}, keys...),
 	}
-	command := resp.Encode().ToString()
 
-	if _, err := g.conn.Write([]byte(command)); err != nil {
+	fullReturn, err := g.Execute(respCommand)
+	if err != nil {
 		return -1, err
-	} else {
-		size := g.reader.Size()
-		byteContent := make([]byte, size)
-		g.reader.Read(byteContent)
-		fullReturn := string(byteContent)
-
-		contentStartingAt := int64(1)
-		for i := 1; fullReturn[i] != '\r'; i++ {
-			contentStartingAt++
-		}
-		existing, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
-
-		return existing, nil
 	}
+
+	contentStartingAt := int64(1)
+	for i := 1; fullReturn[i] != '\r'; i++ {
+		contentStartingAt++
+	}
+	existing, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
+
+	return existing, nil
+}
+
+type RedisCommand interface {
+	ToResp() RespType
+}
+
+type SimpleRedisCommand struct {
+	name string
+}
+
+func (command *SimpleRedisCommand) ToResp() RespType {
+	return &RespBulkString{command.name}
+}
+
+type WithArgumentRedisCommand struct {
+	command   RedisCommand
+	arguments []Argument
+}
+
+func (command *WithArgumentRedisCommand) ToResp() RespType {
+	keysAsBulkString := make([]RespType, len(command.arguments))
+	for i, k := range command.arguments {
+		keysAsBulkString[i] = &RespBulkString{k}
+	}
+	return RespArraySmart(append(
+		[]RespType{command.command.ToResp()},
+		keysAsBulkString...,
+	))
 }
 
 func (g *GodisTcp) Del(key Key, keys ...Key) (int64, error) {
-	resp := &RespArray{
-		[]RespType{
-			&RespBulkString{"DEL"},
-			&RespBulkString{key},
-		},
+	respCommand := &WithArgumentRedisCommand{
+		&SimpleRedisCommand{"DEL"},
+		append([]Argument{key}, keys...),
 	}
-	command := resp.Encode().ToString()
 
-	if _, err := g.conn.Write([]byte(command)); err != nil {
+	fullReturn, err := g.Execute(respCommand)
+	if err != nil {
 		return -1, err
-	} else {
-		size := g.reader.Size()
-		byteContent := make([]byte, size)
-		g.reader.Read(byteContent)
-		fullReturn := string(byteContent)
-
-		contentStartingAt := int64(1)
-		for i := 1; fullReturn[i] != '\r'; i++ {
-			contentStartingAt++
-		}
-		existing, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
-
-		return existing, nil
 	}
+
+	contentStartingAt := int64(1)
+	for i := 1; fullReturn[i] != '\r'; i++ {
+		contentStartingAt++
+	}
+	existing, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
+
+	return existing, nil
+}
+
+func (g *GodisTcp) Execute(command RedisCommand) (string, error) {
+	_, err := g.conn.Write([]byte(command.ToResp().Encode().ToString()))
+	if err != nil {
+		return "", err
+	}
+
+	size := g.reader.Size()
+	byteContent := make([]byte, size)
+	g.reader.Read(byteContent)
+
+	return string(byteContent), nil
 }
 
 func (g *GodisTcp) FlushDb() error {
-	resp := &RespArray{
-		[]RespType{
-			&RespBulkString{"FLUSHDB"},
-		},
-	}
-	command := resp.Encode().ToString()
-
-	if _, err := g.conn.Write([]byte(command)); err != nil {
+	if _, err := g.Execute(&SimpleRedisCommand{"FLUSHDB"}); err != nil {
 		return err
 	}
 	return nil
