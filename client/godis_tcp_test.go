@@ -1,17 +1,43 @@
 package client
 
 import (
+	"os"
 	"testing"
 )
 
-func TestAllowClientSetAndGet(t *testing.T) {
-	client := GodisNew("localhost:6379")
-	client.Open()
+const KEY = "TEST_KEY"
+const VALUE = "TEST_VALUE"
 
-	client.Set("TEST_KEY", "TEST_VALUE")
-	if actual, _ := client.Get("TEST_KEY"); actual != "TEST_VALUE" {
-		t.Errorf("Expected Get %s but got %s", "TEST_VALUE", actual)
+var godis Godis
+
+func setup() {
+	godis = GodisNew("localhost:6379")
+	godis.Open()
+}
+
+func TestThatSetSetsKeyWithValue(t *testing.T) {
+	godis.Set(KEY, VALUE)
+	if actual, _ := godis.Get(KEY); actual != VALUE {
+		t.Errorf("Expected Get %s but got %s", VALUE, actual)
 	}
 
-	defer client.Close()
+	godis.Del(KEY)
+}
+
+func TestThatExistsReturnsZeroIfNotInsertedKey(t *testing.T) {
+	if actual, _ := godis.Exists(KEY); actual != 0 {
+		t.Errorf("Expected Exists 0 but got %d", actual)
+	}
+}
+
+func teardown() {
+	godis.FlushDb()
+	godis.Close()
+}
+
+func TestMain(m *testing.M) {
+	setup()
+	code := m.Run()
+	teardown()
+	os.Exit(code)
 }

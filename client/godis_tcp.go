@@ -26,7 +26,7 @@ func (g *GodisTcp) Open() error {
 	return nil
 }
 
-func (g *GodisTcp) Set(key, value string) error {
+func (g *GodisTcp) Set(key Key, value string) error {
 	resp := &RespArray{
 		[]RespType{
 			&RespBulkString{"SET"},
@@ -46,7 +46,7 @@ func (g *GodisTcp) Set(key, value string) error {
 	return nil
 }
 
-func (g *GodisTcp) Get(key string) (string, error) {
+func (g *GodisTcp) Get(key Key) (string, error) {
 	resp := &RespArray{
 		[]RespType{
 			&RespBulkString{"GET"},
@@ -74,6 +74,74 @@ func (g *GodisTcp) Get(key string) (string, error) {
 
 		return fullReturn[contentStartingAt:contentFinishAt], nil
 	}
+}
+
+func (g *GodisTcp) Exists(key Key, keys ...Key) (int64, error) {
+	resp := &RespArray{
+		[]RespType{
+			&RespBulkString{"EXISTS"},
+			&RespBulkString{key},
+		},
+	}
+	command := resp.Encode().ToString()
+
+	if _, err := g.conn.Write([]byte(command)); err != nil {
+		return -1, err
+	} else {
+		size := g.reader.Size()
+		byteContent := make([]byte, size)
+		g.reader.Read(byteContent)
+		fullReturn := string(byteContent)
+
+		contentStartingAt := int64(1)
+		for i := 1; fullReturn[i] != '\r'; i++ {
+			contentStartingAt++
+		}
+		existing, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
+
+		return existing, nil
+	}
+}
+
+func (g *GodisTcp) Del(key Key, keys ...Key) (int64, error) {
+	resp := &RespArray{
+		[]RespType{
+			&RespBulkString{"DEL"},
+			&RespBulkString{key},
+		},
+	}
+	command := resp.Encode().ToString()
+
+	if _, err := g.conn.Write([]byte(command)); err != nil {
+		return -1, err
+	} else {
+		size := g.reader.Size()
+		byteContent := make([]byte, size)
+		g.reader.Read(byteContent)
+		fullReturn := string(byteContent)
+
+		contentStartingAt := int64(1)
+		for i := 1; fullReturn[i] != '\r'; i++ {
+			contentStartingAt++
+		}
+		existing, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
+
+		return existing, nil
+	}
+}
+
+func (g *GodisTcp) FlushDb() error {
+	resp := &RespArray{
+		[]RespType{
+			&RespBulkString{"FLUSHDB"},
+		},
+	}
+	command := resp.Encode().ToString()
+
+	if _, err := g.conn.Write([]byte(command)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (g *GodisTcp) Close() {
