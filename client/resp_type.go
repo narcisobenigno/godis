@@ -21,9 +21,9 @@ func (bulkString *RespBulkString) Encode() RespEncoded {
 	}
 }
 
-type RespArraySmart []RespType
+type RespArray []RespType
 
-func (a RespArraySmart) Encode() RespEncoded {
+func (a RespArray) Encode() RespEncoded {
 	values := make([]RespEncoded, len(a))
 
 	for i, v := range a {

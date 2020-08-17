@@ -105,7 +105,7 @@ func (command *WithArgumentRedisCommand) ToResp() RespType {
 	for i, k := range command.arguments {
 		keysAsBulkString[i] = &RespBulkString{k}
 	}
-	return RespArraySmart(append(
+	return RespArray(append(
 		[]RespType{command.command.ToResp()},
 		keysAsBulkString...,
 	))
