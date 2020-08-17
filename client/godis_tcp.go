@@ -83,34 +83,6 @@ func (g *GodisTcp) Exists(key Key, keys ...Key) (int64, error) {
 	return existing, nil
 }
 
-type RedisCommand interface {
-	ToResp() RespType
-}
-
-type SimpleRedisCommand struct {
-	name string
-}
-
-func (command *SimpleRedisCommand) ToResp() RespType {
-	return &RespBulkString{command.name}
-}
-
-type WithArgumentRedisCommand struct {
-	command   RedisCommand
-	arguments []Argument
-}
-
-func (command *WithArgumentRedisCommand) ToResp() RespType {
-	keysAsBulkString := make([]RespType, len(command.arguments))
-	for i, k := range command.arguments {
-		keysAsBulkString[i] = &RespBulkString{k}
-	}
-	return RespArray(append(
-		[]RespType{command.command.ToResp()},
-		keysAsBulkString...,
-	))
-}
-
 func (g *GodisTcp) Del(key Key, keys ...Key) (int64, error) {
 	respCommand := &WithArgumentRedisCommand{
 		&SimpleRedisCommand{"DEL"},

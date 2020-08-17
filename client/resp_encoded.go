@@ -27,3 +27,11 @@ func (encoded *RespMultiEncoded) ToString() string {
 	}
 	return strings.Join(values, "")
 }
+
+type RespRawText struct {
+	rawResp string
+}
+
+func (this *RespRawText) ToString() string {
+	return this.rawResp
+}
