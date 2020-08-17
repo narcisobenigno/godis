@@ -38,23 +38,3 @@ func (a RespArraySmart) Encode() RespEncoded {
 		),
 	}
 }
-
-type RespArray struct {
-	values []RespType
-}
-
-func (array *RespArray) Encode() RespEncoded {
-	values := make([]RespEncoded, len(array.values))
-
-	for i, v := range array.values {
-		values[i] = v.Encode()
-	}
-
-	identifier := fmt.Sprintf("*%d", len(values))
-	return &RespMultiEncoded{
-		append(
-			[]RespEncoded{&RespSingleEncoded{identifier}},
-			values...,
-		),
-	}
-}
