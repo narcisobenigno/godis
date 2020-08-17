@@ -3,7 +3,7 @@ package client
 import "fmt"
 import "strings"
 
-type RespType interface {
+type Resp interface {
 	Encode() RespEncoded
 }
 
@@ -16,17 +16,15 @@ type RespBulkString struct {
 }
 
 func (bulkString *RespBulkString) Encode() RespEncoded {
-	identifier := fmt.Sprintf("$%d", len(bulkString.value))
-
 	return &RespMultiEncoded{
 		[]RespEncoded{
-			&RespSingleEncoded{identifier},
+			&RespTypeSizeEncoded{"$", len(bulkString.value)},
 			&RespSingleEncoded{bulkString.value},
 		},
 	}
 }
 
-type RespArray []RespType
+type RespArray []Resp
 
 func (a RespArray) Encode() RespEncoded {
 	values := make([]RespEncoded, len(a))
@@ -35,10 +33,9 @@ func (a RespArray) Encode() RespEncoded {
 		values[i] = v.Encode()
 	}
 
-	identifier := fmt.Sprintf("*%d", len(values))
 	return &RespMultiEncoded{
 		append(
-			[]RespEncoded{&RespSingleEncoded{identifier}},
+			[]RespEncoded{&RespTypeSizeEncoded{"*", len(values)}},
 			values...,
 		),
 	}
@@ -51,6 +48,18 @@ type RespSingleEncoded struct {
 func (encoded *RespSingleEncoded) ToString() string {
 	const RESP_TERMINATOR = "\r\n"
 	return encoded.value + RESP_TERMINATOR
+}
+
+type RespTypeSizeEncoded struct {
+	respType string
+	size     int
+}
+
+func (this *RespTypeSizeEncoded) ToString() string {
+	simpleEncoding := RespSingleEncoded{
+		fmt.Sprintf("%s%d", this.respType, this.size),
+	}
+	return simpleEncoding.ToString()
 }
 
 type RespMultiEncoded struct {

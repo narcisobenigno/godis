@@ -1,14 +1,14 @@
 package client
 
 type RedisCommand interface {
-	ToResp() RespType
+	ToResp() Resp
 }
 
 type SimpleRedisCommand struct {
 	name string
 }
 
-func (command *SimpleRedisCommand) ToResp() RespType {
+func (command *SimpleRedisCommand) ToResp() Resp {
 	return &RespBulkString{command.name}
 }
 
@@ -17,13 +17,13 @@ type WithArgumentRedisCommand struct {
 	arguments []Argument
 }
 
-func (command *WithArgumentRedisCommand) ToResp() RespType {
-	keysAsBulkString := make([]RespType, len(command.arguments))
+func (command *WithArgumentRedisCommand) ToResp() Resp {
+	keysAsBulkString := make([]Resp, len(command.arguments))
 	for i, k := range command.arguments {
 		keysAsBulkString[i] = &RespBulkString{k}
 	}
 	return RespArray(append(
-		[]RespType{command.command.ToResp()},
+		[]Resp{command.command.ToResp()},
 		keysAsBulkString...,
 	))
 }
