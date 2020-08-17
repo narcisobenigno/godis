@@ -8,22 +8,22 @@ type SimpleRedisCommand struct {
 	name string
 }
 
-func (command *SimpleRedisCommand) ToResp() Resp {
-	return &RespBulkString{command.name}
+func (this *SimpleRedisCommand) ToResp() Resp {
+	return &RespBulkString{this.name}
 }
 
-type WithArgumentRedisCommand struct {
+type RedisCommandWithArgments struct {
 	command   RedisCommand
 	arguments []Argument
 }
 
-func (command *WithArgumentRedisCommand) ToResp() Resp {
-	keysAsBulkString := make([]Resp, len(command.arguments))
-	for i, k := range command.arguments {
+func (this *RedisCommandWithArgments) ToResp() Resp {
+	keysAsBulkString := make([]Resp, len(this.arguments))
+	for i, k := range this.arguments {
 		keysAsBulkString[i] = &RespBulkString{k}
 	}
 	return RespArray(append(
-		[]Resp{command.command.ToResp()},
+		[]Resp{this.command.ToResp()},
 		keysAsBulkString...,
 	))
 }

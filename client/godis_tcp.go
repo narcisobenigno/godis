@@ -2,7 +2,6 @@ package client
 
 import "bufio"
 import "net"
-import "strconv"
 
 type GodisTcp struct {
 	host   string
@@ -27,7 +26,7 @@ func (g *GodisTcp) Open() error {
 }
 
 func (g *GodisTcp) Set(key Key, value string) error {
-	command := &WithArgumentRedisCommand{
+	command := &RedisCommandWithArgments{
 		&SimpleRedisCommand{"SET"},
 		[]Argument{key, value},
 	}
@@ -41,7 +40,7 @@ func (g *GodisTcp) Set(key Key, value string) error {
 }
 
 func (g *GodisTcp) Get(key Key) (string, error) {
-	command := &WithArgumentRedisCommand{
+	command := &RedisCommandWithArgments{
 		&SimpleRedisCommand{"GET"},
 		[]Argument{key},
 	}
@@ -51,20 +50,13 @@ func (g *GodisTcp) Get(key Key) (string, error) {
 		return "", err
 	}
 
-	contentStartingAt := int64(1)
-	for i := 1; fullReturn[i] != '\r'; i++ {
-		contentStartingAt++
-	}
-	keySize, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
-	contentStartingAt++
-	contentStartingAt++
-	contentFinishAt := contentStartingAt + keySize
+	reply := &RespBulkStringReply{fullReturn}
 
-	return fullReturn[contentStartingAt:contentFinishAt], nil
+	return reply.String()
 }
 
 func (g *GodisTcp) Exists(key Key, keys ...Key) (int64, error) {
-	respCommand := &WithArgumentRedisCommand{
+	respCommand := &RedisCommandWithArgments{
 		&SimpleRedisCommand{"EXISTS"},
 		append([]Argument{key}, keys...),
 	}
@@ -73,18 +65,13 @@ func (g *GodisTcp) Exists(key Key, keys ...Key) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
+	reply := &RespIntergerReply{fullReturn}
 
-	contentStartingAt := int64(1)
-	for i := 1; fullReturn[i] != '\r'; i++ {
-		contentStartingAt++
-	}
-	existing, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
-
-	return existing, nil
+	return reply.Integer()
 }
 
 func (g *GodisTcp) Del(key Key, keys ...Key) (int64, error) {
-	respCommand := &WithArgumentRedisCommand{
+	respCommand := &RedisCommandWithArgments{
 		&SimpleRedisCommand{"DEL"},
 		append([]Argument{key}, keys...),
 	}
@@ -94,13 +81,9 @@ func (g *GodisTcp) Del(key Key, keys ...Key) (int64, error) {
 		return -1, err
 	}
 
-	contentStartingAt := int64(1)
-	for i := 1; fullReturn[i] != '\r'; i++ {
-		contentStartingAt++
-	}
-	existing, _ := strconv.ParseInt(fullReturn[1:contentStartingAt], 10, 64)
+	reply := &RespIntergerReply{fullReturn}
 
-	return existing, nil
+	return reply.Integer()
 }
 
 func (g *GodisTcp) Execute(command RedisCommand) (string, error) {

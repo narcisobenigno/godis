@@ -1,6 +1,7 @@
 package client
 
 import "fmt"
+import "strconv"
 import "strings"
 
 type Resp interface {
@@ -9,6 +10,35 @@ type Resp interface {
 
 type RespEncoded interface {
 	ToString() string
+}
+
+type RespIntergerReply struct {
+	text string
+}
+
+func (this *RespIntergerReply) Integer() (int64, error) {
+	contentStartingAt := int64(1)
+	for i := 1; this.text[i] != '\r'; i++ {
+		contentStartingAt++
+	}
+	return strconv.ParseInt(this.text[1:contentStartingAt], 10, 64)
+}
+
+type RespBulkStringReply struct {
+	text string
+}
+
+func (this *RespBulkStringReply) String() (string, error) {
+	contentStartingAt := int64(1)
+	for i := 1; this.text[i] != '\r'; i++ {
+		contentStartingAt++
+	}
+	keySize, _ := strconv.ParseInt(this.text[1:contentStartingAt], 10, 64)
+	contentStartingAt++
+	contentStartingAt++
+	contentFinishAt := contentStartingAt + keySize
+
+	return this.text[contentStartingAt:contentFinishAt], nil
 }
 
 type RespBulkString struct {
@@ -26,16 +56,16 @@ func (bulkString *RespBulkString) Encode() RespEncoded {
 
 type RespArray []Resp
 
-func (a RespArray) Encode() RespEncoded {
-	values := make([]RespEncoded, len(a))
+func (this RespArray) Encode() RespEncoded {
+	values := make([]RespEncoded, len(this))
 
-	for i, v := range a {
+	for i, v := range this {
 		values[i] = v.Encode()
 	}
 
 	return &RespMultiEncoded{
 		append(
-			[]RespEncoded{&RespTypeSizeEncoded{"*", len(values)}},
+			[]RespEncoded{&RespTypeSizeEncoded{"*", len(this)}},
 			values...,
 		),
 	}
