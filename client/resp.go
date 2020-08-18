@@ -81,22 +81,26 @@ type RespReply struct {
 }
 
 func (this *RespReply) Integer() (int64, error) {
-	contentStartingAt := int64(1)
-	for i := 1; this.text[i] != '\r'; i++ {
-		contentStartingAt++
-	}
-	return strconv.ParseInt(this.text[1:contentStartingAt], 10, 64)
+	value, _, err := this.integer()
+	return value, err
 }
 
 func (this *RespReply) String() (string, error) {
+	keySize, contentStartingAt, _ := this.integer()
+	contentFinishAt := contentStartingAt + keySize
+
+	return this.text[contentStartingAt:contentFinishAt], nil
+}
+
+func (this *RespReply) integer() (int64, int64, error) {
 	contentStartingAt := int64(1)
 	for i := 1; this.text[i] != '\r'; i++ {
 		contentStartingAt++
 	}
-	keySize, _ := strconv.ParseInt(this.text[1:contentStartingAt], 10, 64)
-	contentStartingAt++
-	contentStartingAt++
-	contentFinishAt := contentStartingAt + keySize
+	integer, err := strconv.ParseInt(this.text[1:contentStartingAt], 10, 64)
 
-	return this.text[contentStartingAt:contentFinishAt], nil
+	contentStartingAt++
+	contentStartingAt++
+
+	return integer, contentStartingAt, err
 }
