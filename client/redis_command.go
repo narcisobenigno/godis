@@ -13,7 +13,7 @@ func (this *SimpleRedisCommand) ToResp() Resp {
 }
 
 type RedisCommandWithArgments struct {
-	command   RedisCommand
+	command   *SimpleRedisCommand
 	arguments []Argument
 }
 

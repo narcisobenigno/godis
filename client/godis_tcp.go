@@ -44,13 +44,11 @@ func (g *GodisTcp) Get(key Key) (string, error) {
 		&SimpleRedisCommand{"GET"},
 		[]Argument{key},
 	}
-	fullReturn, err := g.Execute(command)
+	reply, err := g.Execute(command)
 
 	if err != nil {
 		return "", err
 	}
-
-	reply := &RespBulkStringReply{fullReturn}
 
 	return reply.String()
 }
@@ -61,11 +59,10 @@ func (g *GodisTcp) Exists(key Key, keys ...Key) (int64, error) {
 		append([]Argument{key}, keys...),
 	}
 
-	fullReturn, err := g.Execute(respCommand)
+	reply, err := g.Execute(respCommand)
 	if err != nil {
 		return -1, err
 	}
-	reply := &RespIntergerReply{fullReturn}
 
 	return reply.Integer()
 }
@@ -76,27 +73,25 @@ func (g *GodisTcp) Del(key Key, keys ...Key) (int64, error) {
 		append([]Argument{key}, keys...),
 	}
 
-	fullReturn, err := g.Execute(respCommand)
+	reply, err := g.Execute(respCommand)
 	if err != nil {
 		return -1, err
 	}
 
-	reply := &RespIntergerReply{fullReturn}
-
 	return reply.Integer()
 }
 
-func (g *GodisTcp) Execute(command RedisCommand) (string, error) {
+func (g *GodisTcp) Execute(command RedisCommand) (*RespReply, error) {
 	_, err := g.conn.Write([]byte(command.ToResp().Encode().ToString()))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	size := g.reader.Size()
 	byteContent := make([]byte, size)
 	g.reader.Read(byteContent)
 
-	return string(byteContent), nil
+	return &RespReply{string(byteContent)}, nil
 }
 
 func (g *GodisTcp) FlushDb() error {

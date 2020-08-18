@@ -10,6 +10,6 @@ type Godis interface {
 	Exists(key Key, keys ...Key) (int64, error)
 	Del(key Key, keys ...Key) (int64, error)
 	FlushDb() error
-	Execute(command RedisCommand) (string, error)
+	Execute(command RedisCommand) (*RespReply, error)
 	Close()
 }

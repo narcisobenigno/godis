@@ -12,35 +12,6 @@ type RespEncoded interface {
 	ToString() string
 }
 
-type RespIntergerReply struct {
-	text string
-}
-
-func (this *RespIntergerReply) Integer() (int64, error) {
-	contentStartingAt := int64(1)
-	for i := 1; this.text[i] != '\r'; i++ {
-		contentStartingAt++
-	}
-	return strconv.ParseInt(this.text[1:contentStartingAt], 10, 64)
-}
-
-type RespBulkStringReply struct {
-	text string
-}
-
-func (this *RespBulkStringReply) String() (string, error) {
-	contentStartingAt := int64(1)
-	for i := 1; this.text[i] != '\r'; i++ {
-		contentStartingAt++
-	}
-	keySize, _ := strconv.ParseInt(this.text[1:contentStartingAt], 10, 64)
-	contentStartingAt++
-	contentStartingAt++
-	contentFinishAt := contentStartingAt + keySize
-
-	return this.text[contentStartingAt:contentFinishAt], nil
-}
-
 type RespBulkString struct {
 	value string
 }
@@ -103,4 +74,29 @@ func (encoded *RespMultiEncoded) ToString() string {
 		values[i] = v.ToString()
 	}
 	return strings.Join(values, "")
+}
+
+type RespReply struct {
+	text string
+}
+
+func (this *RespReply) Integer() (int64, error) {
+	contentStartingAt := int64(1)
+	for i := 1; this.text[i] != '\r'; i++ {
+		contentStartingAt++
+	}
+	return strconv.ParseInt(this.text[1:contentStartingAt], 10, 64)
+}
+
+func (this *RespReply) String() (string, error) {
+	contentStartingAt := int64(1)
+	for i := 1; this.text[i] != '\r'; i++ {
+		contentStartingAt++
+	}
+	keySize, _ := strconv.ParseInt(this.text[1:contentStartingAt], 10, 64)
+	contentStartingAt++
+	contentStartingAt++
+	contentFinishAt := contentStartingAt + keySize
+
+	return this.text[contentStartingAt:contentFinishAt], nil
 }
