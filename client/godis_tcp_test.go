@@ -17,41 +17,45 @@ func setup() {
 }
 
 func TestThatSetSetsKeyWithValue(t *testing.T) {
-	godis.Set(KEY, VALUE)
-	if actual, _ := godis.Get(KEY); actual != VALUE {
+	(&SetCommand{godis, KEY, VALUE}).Execute()
+	actual, _ := (&GetCommand{godis, KEY}).Execute()
+	if actual != VALUE {
 		t.Errorf("Expected Get %s but got %s", VALUE, actual)
 	}
 
-	godis.Del(KEY)
+	(&DelCommand{godis, KEY, []Key{}}).Execute()
 }
 
 func TestThatExistsReturnsZeroIfNotInsertedKey(t *testing.T) {
-	if actual, _ := godis.Exists(KEY); actual != 0 {
+	actual, _ := (&ExistsCommand{godis, KEY, []Key{}}).Execute()
+	if actual != 0 {
 		t.Errorf("Expected Exists 0 but got %d", actual)
 	}
 }
 
 func TestThatExistsReturns10When10KeysExists(t *testing.T) {
-	godis.Set(KEY, VALUE)
-	godis.Set(KEY2, VALUE)
-	if actual, _ := godis.Exists(KEY, KEY2); actual != 2 {
+	(&SetCommand{godis, KEY, VALUE}).Execute()
+	(&SetCommand{godis, KEY2, VALUE}).Execute()
+	actual, _ := (&ExistsCommand{godis, KEY, []Key{KEY2}}).Execute()
+	if actual != 2 {
 		t.Errorf("Expected Exists 2 but got %d", actual)
 	}
-	godis.Del(KEY)
-	godis.Del(KEY2)
+	(&DelCommand{godis, KEY, []Key{}}).Execute()
+	(&DelCommand{godis, KEY2, []Key{}}).Execute()
 }
 
 func TestThatDeletes2Keys(t *testing.T) {
-	godis.Set(KEY, VALUE)
-	godis.Set(KEY2, VALUE)
-	godis.Del(KEY, KEY2)
-	if actual, _ := godis.Exists(KEY, KEY2); actual != 0 {
+	(&SetCommand{godis, KEY, VALUE}).Execute()
+	(&SetCommand{godis, KEY2, VALUE}).Execute()
+	(&DelCommand{godis, KEY, []Key{KEY2}}).Execute()
+	actual, _ := (&ExistsCommand{godis, KEY, []Key{KEY2}}).Execute()
+	if actual != 0 {
 		t.Errorf("Expected Exists 0 but got %d", actual)
 	}
 }
 
 func teardown() {
-	godis.FlushDb()
+	(&FlushDbCommand{godis}).Execute()
 	godis.Close()
 }
 
